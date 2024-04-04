@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map {
+      height: 90vh;
+    }
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    #search-bar {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      background-color: white;
+      padding: 5px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+<div id="map"></div>
+<div id="search-bar">
+  <input type="text" id="search-input" placeholder="Search for location">
+  <button onclick="searchLocation()">Search</button>
+</div>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+  var map = L.map('map');
+  var marker;
+
+  function getLocation(){
+    if (navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(showPosition);
+    }
+    else {
+      alert("Geolocation is not supported by this browser.")
+    }
+  }
+
+  function showPosition(position) {
+    var lat = position.coords.latitude;
+    var lon = position.coords.longitude;
+
+    map.setView([lat, lon], 13)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    marker = L.marker([lat, lon]).addTo(map)
+            .bindPopup('Your Location.')
+            .openPopup();
+  }
+
+  function searchLocation(){
+    var query = document.getElementById('search-input').value;
+    fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + query)
+            .then(response=>response.json())
+            .then(data => {
+              if (data.length>0){
+                var latlng = [parseFloat(data[0].lat), parseFloat(data[0].lon)]
+                map.setView(latlng, 13);
+                if (marker){
+                  marker.setLatLng(latlng);
+                }
+                else {
+                  marker = L.marker(latlng).addTo(map);
+                }
+                marker.bindPopup(data[0].display_name).openPopup();
+              }
+              else {
+                alert('Location not found.');
+              }
+            }).catch(error=>console.log('Error: ', error));
+  }
+  getLocation();
+</script>
+</body>
+</html>
